@@ -151,6 +151,22 @@ test_config_permissions_are_service_readable() {
   rm -rf "${tmpdir}"
 }
 
+test_validation_temp_file_keeps_json_suffix() {
+  local tmpdir temp_file
+  tmpdir="$(mktemp -d)"
+
+  temp_file="$(make_validation_temp_file "${tmpdir}")"
+
+  assert_contains "${temp_file}" "${tmpdir}/" "validation temp dir"
+  assert_contains "${temp_file}" ".json" "validation temp json suffix"
+  if [[ "${temp_file}" != *.json ]]; then
+    fail "validation temp file must end with .json: ${temp_file}"
+  fi
+
+  rm -rf "$(dirname "${temp_file}")"
+  rm -rf "${tmpdir}"
+}
+
 test_warn_writes_to_stderr() {
   local tmpdir stdout stderr
   tmpdir="$(mktemp -d)"
@@ -189,6 +205,7 @@ main() {
   test_read_config_or_default_preserves_existing_file
   test_xray_config_validation_uses_current_cli
   test_config_permissions_are_service_readable
+  test_validation_temp_file_keeps_json_suffix
   test_warn_writes_to_stderr
   test_share_links
   printf 'ok - install-xray tests passed\n'

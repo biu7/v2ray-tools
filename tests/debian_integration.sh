@@ -30,8 +30,10 @@ ss="$(ss2022_inbound_json "8443" "${ss_password}" "docker-ss")"
 config="$(append_inbound_json "${config}" "${vless}")"
 config="$(append_inbound_json "${config}" "${ss}")"
 
-jq . <<<"${config}" >/tmp/xray-config.json
-/usr/local/bin/xray run -test -config /tmp/xray-config.json
+validation_config="$(make_validation_temp_file /tmp)"
+jq . <<<"${config}" >"${validation_config}"
+/usr/local/bin/xray run -test -config "${validation_config}"
+rm -rf "$(dirname "${validation_config}")"
 
 bash -n install-xray.sh tests/install_xray_test.sh
 bash tests/install_xray_test.sh

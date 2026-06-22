@@ -216,6 +216,14 @@ set_config_permissions() {
   chmod 644 "${config_file}"
 }
 
+make_validation_temp_file() {
+  local config_dir="$1"
+  local tmp_dir
+
+  tmp_dir="$(mktemp -d "${config_dir}/config.tmp.XXXXXX")"
+  printf '%s/config.json' "${tmp_dir}"
+}
+
 vless_reality_link() {
   local server="$1"
   local port="$2"
@@ -391,16 +399,17 @@ write_config_checked() {
   [[ -x "${XRAY_BIN}" ]] || die "找不到 Xray: ${XRAY_BIN}"
 
   local config="$1"
-  local config_dir tmp_file backup_file
+  local config_dir tmp_file tmp_dir backup_file
   config_dir="$(dirname "${XRAY_CONFIG_PATH}")"
   mkdir -p "${config_dir}"
 
-  tmp_file="$(mktemp "${config_dir}/config.json.tmp.XXXXXX")"
+  tmp_file="$(make_validation_temp_file "${config_dir}")"
+  tmp_dir="$(dirname "${tmp_file}")"
   jq . <<<"${config}" >"${tmp_file}"
 
   info "验证 Xray 配置"
   if ! test_xray_config "${tmp_file}"; then
-    rm -f "${tmp_file}"
+    rm -rf "${tmp_dir}"
     die "Xray 配置验证失败，未写入正式配置"
   fi
 
@@ -411,6 +420,7 @@ write_config_checked() {
   fi
 
   mv "${tmp_file}" "${XRAY_CONFIG_PATH}"
+  rmdir "${tmp_dir}" 2>/dev/null || true
   set_config_permissions "${XRAY_CONFIG_PATH}"
 
   if command_exists systemctl; then
